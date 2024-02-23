@@ -49,13 +49,15 @@ parser.add_argument("--load_checkpoint", type=str, default=None, help="path to c
 parser.add_argument("--project", type=str, default="FREDo", help="project name for wandb")
 parser.add_argument("--model", type=str, default="dlmnav", help="model")
 
+parser.add_argument("--cuda_no", type=str, default="0")
+
 args = parser.parse_args()
 wandb.init(project=args.project)
 wandb.config.update(args)
 wandb.config.identifier = random_string
 
 os.environ["TOKENIZERS_PARALLELISM"] = "false"
-
+os.environ["CUDA_VISIBLE_DEVICES"] = args.cuda_no
 tokenizer = AutoTokenizer.from_pretrained("bert-base-cased")
 # %%
 
