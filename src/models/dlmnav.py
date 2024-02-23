@@ -88,9 +88,11 @@ class Encoder(BaseEncoder):
                     if relation_type in t:
                         embeddings.append(exemplars[i])
                 embeddings = torch.stack(embeddings, 0)
-                if relation_type != "NOTA":
-                    embeddings = torch.mean(embeddings, 0, keepdim=True)
-                else:
+                # if relation_type != "NOTA":
+                #     #work2-2 需要拿出来embeddings，以便后续使用 [n,1536]
+
+                #     embeddings = torch.mean(embeddings, 0, keepdim=True)
+                if relation_type == "NOTA":
                     if self.first_run and self.training:
                         self.nota_embeddings.data = torch.mean(embeddings, 0, keepdim=True)
                         indexes = torch.randperm(embeddings.shape[0])

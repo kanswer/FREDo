@@ -127,12 +127,24 @@ class BaseEncoder(nn.Module):
 
                 candidates = torch.cat((h_entities, t_entities), dim=-1)
 
+                #work-2-3 query:candidates[?,1536], support:prototypes[k,1536]
+                nota_flag = True
+                for j in prototypes[batch_i]:
+                    if nota_flag:
+                        nota_flag = False
+                        continue
+                    alpha = F.softmax(torch.sum(torch.tanh(candidates.unsqueeze(1) * j.unsqueeze(0)), dim=-1), dim=-1) #[?,k]
+                    j = torch.sum(alpha.unsqueeze(-1) * j.unsqueeze(0),dim=-2)
+                    
                 scores = []
-
+                nota_flag = True
                 for class_prototypes in prototypes[batch_i]:
-                    class_scores = candidates.unsqueeze(0) * class_prototypes.unsqueeze(1)
-                    class_scores = torch.sum(class_scores, dim=-1)
-                    class_scores = class_scores.max(dim=0,keepdim=False)[0]
+                    if nota_flag:
+                        class_scores = candidates.unsqueeze(0) * class_prototypes.unsqueeze(1)
+                        class_scores = torch.sum(class_scores, dim=-1)
+                        class_scores = class_scores.max(dim=0,keepdim=False)[0]
+                    else:
+                        class_scores = torch.sum(candidates * class_prototypes, dim=-1)
                     scores.append(class_scores)
 
                 scores = torch.stack(scores).swapaxes(0,1)
