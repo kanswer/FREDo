@@ -53,7 +53,7 @@ class BaseEncoder(nn.Module):
                 type_labels=None):
 
         # -------------- build relation representations from exemplars ------------
-        prototypes = self.set_exemplars(exemplar_input_ids, exemplar_masks, exemplar_entity_positions, exemplar_labels, type_labels)
+        prototypes, lamda = self.set_exemplars(exemplar_input_ids, exemplar_masks, exemplar_entity_positions, exemplar_labels, type_labels)
 
         nota_id = [x.index("NOTA") for x in type_labels]
 
@@ -129,8 +129,10 @@ class BaseEncoder(nn.Module):
 
                 scores = []
 
-                for class_prototypes in prototypes[batch_i]:
+                for class_prototypes, class_lamda in zip(prototypes[batch_i], lamda[batch_i]):
                     class_scores = candidates.unsqueeze(0) * class_prototypes.unsqueeze(1)
+                    if class_lamda != None:
+                        class_scores = class_lamda * class_scores
                     class_scores = torch.sum(class_scores, dim=-1)
                     class_scores = class_scores.max(dim=0,keepdim=False)[0]
                     scores.append(class_scores)

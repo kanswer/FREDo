@@ -1,7 +1,8 @@
 import torch
 import torch.nn as nn
 from src.models.base_model import BaseEncoder
-
+import math
+from torch.nn import functional as F
 class Encoder(BaseEncoder):
     def __init__(self, config, model, cls_token_id=0, sep_token_id=0, markers=True):
         super().__init__(config=config, model=model, exemplar_method=self.proto_mnav, cls_token_id=cls_token_id, sep_token_id=sep_token_id, markers=markers)
@@ -78,9 +79,12 @@ class Encoder(BaseEncoder):
         
         # create prototype embeddings
         batch_prototypes = []
+        #work-2-2 增加lamda,
+        batch_lamda = [] #每种关系的特征注意力值,维度同实例大小，1536
         n_nota_samples = 20
         for exemplars, label_ids, label_types, type_index in zip(batch_exemplars, batch_label_ids, batch_label_types, type_labels):
             episodes_prototypes = [None for _ in type_index]
+            episodes_lamda = [None for _ in type_index]
             # print(label_types)
             for relation_type in type_index:
                 embeddings = []
@@ -89,6 +93,11 @@ class Encoder(BaseEncoder):
                         embeddings.append(exemplars[i])
                 embeddings = torch.stack(embeddings, 0)
                 if relation_type != "NOTA":
+                    embeddings_embeddings = torch.sum(torch.matmul(embeddings.t(), embeddings), 1) #[k]
+                    embeddings_embeddings = torch.div(embeddings_embeddings, math.sqrt(768))
+                    lamda = F.relu(embeddings_embeddings)
+                    # lamda = F.softmax(torch.tanh(embeddings_embeddings), dim=0)
+                    episodes_lamda[type_index.index(relation_type)] = lamda
                     embeddings = torch.mean(embeddings, 0, keepdim=True)
                 else:
                     if self.first_run and self.training:
@@ -101,5 +110,6 @@ class Encoder(BaseEncoder):
 
             # episodes_prototypes = torch.stack(episodes_prototypes, 0)
             batch_prototypes.append(episodes_prototypes)
+            batch_lamda.append(episodes_lamda)
         
-        return batch_prototypes
+        return batch_prototypes, batch_lamda
