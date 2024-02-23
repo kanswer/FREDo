@@ -8,7 +8,7 @@ import torch.nn.functional as F
 from src.models.losses import ATLoss
 
 class BaseEncoder(nn.Module):
-    def __init__(self, config, model, exemplar_method, cls_token_id=0, sep_token_id=0, markers=True):
+    def __init__(self, config, model, exemplar_method, cls_token_id=0, sep_token_id=0, markers=True, nota_rectification_factor=0.1):
         super().__init__()
         self.config = config
         self.model = model
@@ -27,7 +27,7 @@ class BaseEncoder(nn.Module):
 
         self.set_exemplars = exemplar_method
         
-
+        self.nota_rectification_factor = nota_rectification_factor
 
     def encode(self, input_ids, attention_mask):
         # Source: https://github.com/wzhouad/ATLOP

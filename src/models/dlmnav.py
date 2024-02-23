@@ -1,7 +1,7 @@
 import torch
 import torch.nn as nn
 from src.models.base_model import BaseEncoder
-
+import torch.nn.functional as F
 class Encoder(BaseEncoder):
     def __init__(self, config, model, cls_token_id=0, sep_token_id=0, markers=True):
         super().__init__(config=config, model=model, exemplar_method=self.proto_mnav, cls_token_id=cls_token_id, sep_token_id=sep_token_id, markers=markers)
@@ -96,9 +96,20 @@ class Encoder(BaseEncoder):
                         indexes = torch.randperm(embeddings.shape[0])
                         self.nota_embeddings.data = embeddings[indexes[:n_nota_samples], :]
                         self.first_run = False
+                    #work-2-1 nota_embeddings + special_nota_embeddings
+                    episode_nota_embeddings = embeddings
                     embeddings = self.nota_embeddings
                 episodes_prototypes[type_index.index(relation_type)] = embeddings
+            #work-2-1 nota_embeddings + special_nota_embeddings
+            episodes_prototypes_embeddings = torch.cat(episodes_prototypes[1:], 0)
+            score1 = torch.sum(episode_nota_embeddings.unsqueeze(0) * self.nota_embeddings.unsqueeze(1), dim=-1) #[k, n]
 
+            score2 = torch.sum(episode_nota_embeddings.unsqueeze(0) * episodes_prototypes_embeddings.unsqueeze(1), dim=-1) #[k, n]
+            score2 = torch.sum(score2, dim=0, keepdim=True) #[1, n]
+
+            alpha = F.softmax(score1 - score2) #[k,n]
+            episode_nota_embeddings = torch.matmul(alpha, episode_nota_embeddings)
+            episodes_prototypes[type_index.index('NOTA')] = (1-self.nota_rectification_factor) * self.nota_embeddings + self.nota_rectification_factor * episode_nota_embeddings
             # episodes_prototypes = torch.stack(episodes_prototypes, 0)
             batch_prototypes.append(episodes_prototypes)
         
