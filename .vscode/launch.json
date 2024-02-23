@@ -19,6 +19,21 @@
                 "--model","dlmnav",
                 "--cuda_no","0",
             ]
+        },
+        {
+            "name": "3-doc setting eval",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "train.py",
+            "console": "integratedTerminal",
+            "justMyCode": true,
+            "args": [
+                "--support_docs_eval","3",
+                "--num_epochs","0",
+                "--model","dlmnav",
+                "--cuda_no","0",
+                "--load_checkpoint", "checkpoints/work2-3.pt"
+            ]
         }
     ]
 }
