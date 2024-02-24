@@ -220,7 +220,11 @@ for i in tqdm(range(n_epochs)):
             wandb.log({"learning_rate": lr_scheduler.get_last_lr()[0]}, step=step_global)
 
             # backpropagate & reset
+            torch.use_deterministic_algorithms(False)  # 临时关闭
             scaler.scale(loss).backward()
+            torch.use_deterministic_algorithms(True)   # 操作完成后再开启
+
+            
             
             # Unscales the gradients of optimizer's assigned params in-place
             scaler.unscale_(optimizer)

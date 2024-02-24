@@ -17,7 +17,7 @@ def process_long_input(model, input_ids, attention_mask, start_tokens, end_token
             attention_mask=attention_mask,
             output_attentions=True,
         )
-        sequence_output = output[0]
+        sequence_output_glo, sequence_output = output[1], output[0]
         attention = output[-1][-1]
     else:
         new_input_ids, new_attention_mask, num_seg = [], [], []
@@ -42,14 +42,16 @@ def process_long_input(model, input_ids, attention_mask, start_tokens, end_token
             attention_mask=attention_mask,
             output_attentions=True,
         )
-        sequence_output = output[0]
+        sequence_output_glo, sequence_output = output[1], output[0]
         attention = output[-1][-1]
         i = 0
-        new_output, new_attention = [], []
+        new_output_glo, new_output, new_attention = [], [], []
         for (n_s, l_i) in zip(num_seg, seq_len):
             if n_s == 1:
                 output = F.pad(sequence_output[i], (0, 0, 0, c - 512))
                 att = F.pad(attention[i], (0, c - 512, 0, c - 512))
+                output_glo = sequence_output_glo[i]
+                new_output_glo.append(output_glo)
                 new_output.append(output)
                 new_attention.append(att)
             elif n_s == 2:
@@ -59,6 +61,7 @@ def process_long_input(model, input_ids, attention_mask, start_tokens, end_token
                 output1 = F.pad(output1, (0, 0, 0, c - 512 + len_end))
                 mask1 = F.pad(mask1, (0, c - 512 + len_end))
                 att1 = F.pad(att1, (0, c - 512 + len_end, 0, c - 512 + len_end))
+                output_glo1 = sequence_output_glo[i]
 
                 output2 = sequence_output[i + 1][len_start:]
                 mask2 = attention_mask[i + 1][len_start:]
@@ -66,16 +69,21 @@ def process_long_input(model, input_ids, attention_mask, start_tokens, end_token
                 output2 = F.pad(output2, (0, 0, l_i - 512 + len_start, c - l_i))
                 mask2 = F.pad(mask2, (l_i - 512 + len_start, c - l_i))
                 att2 = F.pad(att2, [l_i - 512 + len_start, c - l_i, l_i - 512 + len_start, c - l_i])
+                output_glo2 = sequence_output_glo[i+1]
+
                 mask = mask1 + mask2 + 1e-10
                 output = (output1 + output2) / mask.unsqueeze(-1)
+                output_glo = (output_glo1 + output_glo2) / 2
                 att = (att1 + att2)
                 att = att / (att.sum(-1, keepdim=True) + 1e-10)
+                new_output_glo.append(output_glo)
                 new_output.append(output)
                 new_attention.append(att)
             i += n_s
+        sequence_output_glo = torch.stack(new_output_glo, dim=0)
         sequence_output = torch.stack(new_output, dim=0)
         attention = torch.stack(new_attention, dim=0)
-    return sequence_output, attention
+    return sequence_output_glo, sequence_output, attention
 
 def set_seed(seed, n_gpu=1):
     """Source: https://github.com/wzhouad/ATLOP/blob/main/utils.py"""
