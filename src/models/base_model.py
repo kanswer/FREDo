@@ -26,6 +26,8 @@ class BaseEncoder(nn.Module):
         self.sep_token_id = sep_token_id
 
         self.set_exemplars = exemplar_method
+
+        self.rel_feature_att = nn.Linear(1536, 1536)
         
 
 

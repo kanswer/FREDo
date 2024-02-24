@@ -94,8 +94,10 @@ class Encoder(BaseEncoder):
                 embeddings = torch.stack(embeddings, 0)
                 if relation_type != "NOTA":
                     embeddings_embeddings = torch.sum(torch.matmul(embeddings.t(), embeddings), 1) #[k]
-                    embeddings_embeddings = torch.div(embeddings_embeddings, math.sqrt(768))
-                    lamda = F.relu(embeddings_embeddings)
+                    embeddings_embeddings = F.relu(embeddings_embeddings)
+                    lamda = F.relu(self.rel_feature_att(embeddings_embeddings))
+                    # embeddings_embeddings = torch.div(embeddings_embeddings, math.sqrt(768))
+                    # lamda = F.relu(embeddings_embeddings)
                     # lamda = F.softmax(torch.tanh(embeddings_embeddings), dim=0)
                     episodes_lamda[type_index.index(relation_type)] = lamda
                     embeddings = torch.mean(embeddings, 0, keepdim=True)
