@@ -304,7 +304,9 @@ else:
     step_global = 0
 
 true_positives, false_positives, false_negatives = {},{},{}
-
+relation_score = {}
+nota_score = {}
+relation_num = {}
 
 encoder.eval()
 
@@ -314,9 +316,8 @@ if args.model == "dlmnav+sie+sbn":
 with tqdm(indomain_test_loader) as pbar:
     for batch in pbar:
         exemplar_tokens, exemplar_mask, exemplar_positions, exemplar_labels, query_tokens, query_mask, query_positions, query_labels, label_types = batch
-        output = encoder(exemplar_tokens.to('cuda'), exemplar_mask.to('cuda'), exemplar_positions, exemplar_labels, query_tokens.to('cuda'), query_mask.to('cuda'), query_positions, None, label_types)
+        output, scores = encoder(exemplar_tokens.to('cuda'), exemplar_mask.to('cuda'), exemplar_positions, exemplar_labels, query_tokens.to('cuda'), query_mask.to('cuda'), query_positions, None, label_types)
         #loss = encoder(exemplar_tokens, exemplar_mask, exemplar_positions, exemplar_labels, query_tokens, query_mask, query_positions, query_labels)
-        
         for pred, lbls in zip(output, query_labels):
             for preds, lbs in zip(pred, lbls):
                 for inf in preds:
@@ -338,7 +339,16 @@ with tqdm(indomain_test_loader) as pbar:
 
                     if label not in preds:
                         false_negatives[label[2]] += 1
-
+        for score, lbls, label_type in zip(scores, query_labels, label_types):
+            for sco, lbs in zip(score, lbls):
+                for label in lbs:
+                    if label[2] not in relation_num.keys():
+                        relation_score[label[2]] =0 
+                        relation_num[label[2]] =0
+                        nota_score[label[2]] = 0
+                    relation_score[label[2]] += sco[label[0]][label[1]][label_type.index(label[2])].float().item()
+                    nota_score[label[2]] += sco[label[0]][label[1]][0].float().item()
+                    relation_num[label[2]] += 1
 p,r,f = get_f1(true_positives, false_positives, false_negatives)
 p_dev, r_dev, f1_dev = get_f1_macro(true_positives, false_positives, false_negatives, prnt=True)
 

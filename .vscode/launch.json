@@ -28,11 +28,11 @@
             "console": "integratedTerminal",
             "justMyCode": true,
             "args": [
-                "--support_docs_eval","3",
+                // "--support_docs_eval","3",
                 "--num_epochs","0",
                 "--model","dlmnav",
-                "--cuda_no","0",
-                "--load_checkpoint", "checkpoints/work2-3.pt"
+                "--cuda_no","1",
+                "--load_checkpoint", "checkpoints/work2-2-2304.pt"
             ]
         }
     ]

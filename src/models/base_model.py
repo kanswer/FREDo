@@ -103,6 +103,7 @@ class BaseEncoder(nn.Module):
         support_loc0 = torch.sum(rel_general * sequence_output, dim=2)
 
         all_matches = []
+        all_scores = []
         loss = 0
         candidates = 0
         for batch_i in range(batch_size):
@@ -110,7 +111,7 @@ class BaseEncoder(nn.Module):
             entity_embeddings = [[] for _ in query_entity_positions[batch_i]]
             #print(entity_positions)
             matches = [[] for _ in query_entity_positions[batch_i]]
-
+            predictions_for_querys = [[] for _ in query_entity_positions[batch_i]]
             for i, batch_item in enumerate(query_entity_positions[batch_i]):
                 
                 num_entities_in_query = len(batch_item)
@@ -175,7 +176,7 @@ class BaseEncoder(nn.Module):
 
 
                 predictions_for_query = scores.view((num_entities_in_query, num_entities_in_query, len(type_labels[batch_i])))
-                
+                predictions_for_querys[i] = predictions_for_query
                 for i_h, h in enumerate(entity_embeddings[i]):
                     for i_t, t in enumerate(entity_embeddings[i]):
                         if i_h == i_t:
@@ -193,9 +194,10 @@ class BaseEncoder(nn.Module):
                     #loss += F.binary_cross_entropy_with_logits(torch.masked_select(predictions_for_query, mask).view(-1, predictions_for_query.size(-1)), torch.masked_select(labels[batch_i][i].float(), mask).view(-1, predictions_for_query.size(-1)))
 
             all_matches.append(matches)
+            all_scores.append(predictions_for_querys)
 
         if query_labels is not None:
             loss = loss / batch_size
             return all_matches, loss
-        return all_matches
+        return all_matches, all_scores
 
